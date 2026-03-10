@@ -154,5 +154,76 @@ public class EmpleadosManager {
         return sales.readBoolean();
     }
     
+    public void payEmployee(int code) throws IOException{
+        remps.seek(0);
+        boolean found = false;
+        
+        String name = " ";
+        double salaryBase = 0;
+        long fechaContratacion;
+        long fechaDespido = 0;
+        
+        while (remps.getFilePointer() < remps.length()) {
+            int c = remps.readInt();
+            String n = remps.readUTF();
+            double s = remps.readDouble();
+            
+            long fc = remps.readLong();
+            long fd = remps.readLong();
+            
+            if (c == code){
+                found = true;
+                name = n;
+                salaryBase = s;
+                fechaContratacion = fc;
+                fechaDespido = fd;
+                break;
+            }
+            
+            if (!found || fechaDespido != 0) {
+            System.out.println("No se pudo pagar");
+            return;
+            
+            }
+            
+            if (isEmployedPayed(code)) {
+            System.out.println("No se pudo pagar");
+            return;
+            
+            }
+            
+            Calendar cal = Calendar.getInstance();
+            int year = cal.get(Calendar.YEAR);
+            int month = cal.get(Calendar.MONTH);
+            
+            RandomAccessFile sales = salesFileFor(code);
+            long pos = month * 9;
+            
+            sales.seek(pos);
+            double ventasMes = sales.readDouble();
+            
+            double sueldo = salaryBase + (ventasMes * 0.10);
+            double deduccion = sueldo * 0.035;
+            double total = sueldo - deduccion;
+            
+            RandomAccessFile bills = billsFileFor(code);
+            bills.seek(bills.length());
+            
+            long fechaPago = cal.getTimeInMillis();
+            
+            bills.writeLong(fechaPago);
+            bills.writeDouble(sueldo);
+            bills.writeDouble(deduccion);
+            bills.writeInt(year);
+            bills.writeInt(month);
+            
+            sales.seek(pos + 8);
+            sales.writeBoolean(true);
+            
+            System.out.println("Empleado " + name + " se le pago Lps. " + total);
+            
+            
+        }
+    }
     
 }
